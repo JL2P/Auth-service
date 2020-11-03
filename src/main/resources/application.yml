@@ -1,14 +1,10 @@
 server:
   port: 9000
 
-#security:
-#  oauth2:
-#    client:
-#      client-id: auth_id
-#      client-secret: auth_secret
-#    resource:
-#      jwt:
-#        key-value: jwt_secret_key
+security:
+  oauth2:
+    jwt:
+      signkey: planit
 
 spring:
   devtools:
@@ -23,6 +19,6 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.MariaDB53Dialect
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
     showSql: true
 
