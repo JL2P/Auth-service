@@ -1,0 +1,38 @@
+package com.service.auth.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+// import 생략
+
+@Configuration
+public class WebMvcConfig implements WebMvcConfigurer {
+
+    private static final long MAX_AGE_SECONDS = 3600;
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOrigins("*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(MAX_AGE_SECONDS);
+    }
+
+    @Bean
+    public RestTemplate getRestTemplate() {
+        return new RestTemplate();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        // Spring5부터 PasswordEncoder 지정은 필수로 진행해주어야 합니다.
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+    }
+}
