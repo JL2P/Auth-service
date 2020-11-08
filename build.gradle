@@ -30,20 +30,19 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	annotationProcessor 'org.projectlombok:lombok'
+
+	//스웨거 추가
+	//블로그에서 2.6.1버전을 추천하더라
+	implementation 'io.springfox:springfox-swagger2:2.6.1'
+	implementation 'io.springfox:springfox-swagger-ui:2.6.1'
 	implementation 'com.google.code.gson:gson'
 
-// 스프링 테스트
-	// Junit 5 -> 4로 변경
-	//	testImplementation('org.springframework.boot:spring-boot-starter-test') {
-	//		exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
-	//	}
+
 	testImplementation('org.springframework.boot:spring-boot-starter-test')
 }
 
 test {
-//	useJUnitPlatform()
 	useJUnitPlatform {
 		includeEngines 'junit-vintage'
-		// excludeEngines 'junit-jupiter'
 	}
 }
