@@ -30,7 +30,10 @@ public class Oauth2AuthorizationConfig extends AuthorizationServerConfigurerAdap
 
     @Value("${security.oauth2.jwt.signkey}")
     private String signKey;
-
+    @Value("${security.oauth2.client.client-id}")
+    private String clientId;
+    @Value("${security.oauth2.client.client-secret}")
+    private String clientSecret;
     /**
      * 클라이언트 정보 주입 방식을 jdbcdetail로 변경
      *
@@ -41,8 +44,8 @@ public class Oauth2AuthorizationConfig extends AuthorizationServerConfigurerAdap
     public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
 //        clients.jdbc(dataSource).passwordEncoder(passwordEncoder);
         clients.inMemory()
-                .withClient("planit")
-                .secret(passwordEncoder.encode("planit"))
+                .withClient(clientId)
+                .secret(passwordEncoder.encode(clientSecret))
                 .authorizedGrantTypes("authorization_code", "password", "refresh_token")
                 .scopes("read", "write")
                 .accessTokenValiditySeconds(60*60)

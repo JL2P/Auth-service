@@ -3,6 +3,9 @@ server:
 
 security:
   oauth2:
+    client:
+      client-id: planit
+      client-secret: planit1234
     jwt:
       signkey: planit
 

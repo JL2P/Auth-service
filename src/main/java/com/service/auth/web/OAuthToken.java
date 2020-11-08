@@ -1,4 +1,4 @@
-package com.service.auth;
+package com.service.auth.web;
 
 import lombok.Getter;
 import lombok.Setter;
