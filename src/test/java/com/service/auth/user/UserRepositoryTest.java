@@ -23,9 +23,9 @@ public class UserRepositoryTest {
     @Test
     public void insertNewUserTest() {
         userRepository.save(User.builder()
-                .uid("happydaddy@gmail.com")
+                .uid("hello")
                 .password(passwordEncoder.encode("1234"))
-                .name("happydaddy")
+                .name("hello")
                 .roles(Collections.singletonList("ROLE_USER"))
                 .build());
     }

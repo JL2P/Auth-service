@@ -14,16 +14,21 @@ import org.springframework.web.client.RestTemplate;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/oauth2")
+@RequestMapping("/api")
 public class Oauth2Controller {
 
     private final Gson gson;
     private final RestTemplate restTemplate;
 
-    @GetMapping(value = "/callback")
-    public OAuthToken callbackSocial(@RequestParam String code) {
-        System.out.println(code);
-        String credentials = "testClientId:testSecret";
+    @GetMapping("/hello")
+    public String test(){
+        return "TEST";
+    }
+
+    @GetMapping("/test")
+    public OAuthToken callbackSocial(@RequestParam String username, @RequestParam String password) {
+        System.out.println(username+" "+password);
+        String credentials = "planit:planit";
         String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
 
         HttpHeaders headers = new HttpHeaders();
@@ -31,9 +36,9 @@ public class Oauth2Controller {
         headers.add("Authorization", "Basic " + encodedCredentials);
 
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("code", code);
-        params.add("grant_type", "authorization_code");
-        params.add("redirect_uri", "http://localhost:9000/oauth2/callback");
+        params.add("username", username);
+        params.add("password", password);
+        params.add("grant_type", "password");
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
         ResponseEntity<String> response = restTemplate.postForEntity("http://localhost:9000/oauth/token", request, String.class);
         if (response.getStatusCode() == HttpStatus.OK) {
