@@ -18,7 +18,7 @@ import java.util.NoSuchElementException;
 @Api(tags = {"1. Oauth2"})
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/auth")
 public class Oauth2Controller {
 
     private final Gson gson;
