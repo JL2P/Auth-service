@@ -1,61 +1,66 @@
 package com.service.auth.web;
 
 import com.google.gson.Gson;
+import com.service.auth.domain.service.UserService;
 import com.service.auth.web.dto.LoginDto;
-import com.service.auth.web.message.ErrorMessage;
+import com.service.auth.web.dto.SignupDto;
 import io.swagger.annotations.Api;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.NoSuchElementException;
 
-@Api(tags = {"1. Oauth2"})
+@Api(tags = {"2. User"})
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api")
-public class Oauth2Controller {
-
+public class UserController {
     private final Gson gson;
     private final RestTemplate restTemplate;
+    private final UserService userService;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${security.oauth2.client.client-id}")
     private String clientId;
     @Value("${security.oauth2.client.client-secret}")
     private String clientSecret;
 
-    @GetMapping(value = "/token/refresh")
-    public OAuthToken refreshToken(@RequestParam String refreshToken) {
 
-        String credentials = "testClientId:testSecret";
+    @PostMapping("/signup")
+    public String addUser(@RequestBody SignupDto signupDto){
+        userService.addUser(signupDto.toEntity(passwordEncoder.encode(signupDto.getPassword())));
+        return "success";
+    }
+
+    @PostMapping("/signin")
+    public OAuthToken callbackSocial(@RequestBody LoginDto loginDto) {
+
+        String credentials = clientId+":"+clientSecret;
         String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
         headers.add("Authorization", "Basic " + encodedCredentials);
 
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("refresh_token", refreshToken);
-        params.add("grant_type", "refresh_token");
+        params.add("username", loginDto.getEmail());
+        params.add("password", loginDto.getPassword());
+        params.add("grant_type", "password");
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
         ResponseEntity<String> response = restTemplate.postForEntity("http://localhost:9000/oauth/token", request, String.class);
         if (response.getStatusCode() == HttpStatus.OK) {
             return gson.fromJson(response.getBody(), OAuthToken.class);
         }
         return null;
-    }
-
-    @ExceptionHandler(RuntimeException.class)
-    public @ResponseBody
-    ErrorMessage runTimeError(RuntimeException e) throws NoSuchElementException {
-        ErrorMessage error = new ErrorMessage();
-        error.setMessage(e.getMessage());
-        return error;
     }
 }
