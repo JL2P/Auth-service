@@ -25,4 +25,9 @@ public class CustomUserDetailService implements UserDetailsService {
         detailsChecker.check(user);
         return user;
     }
+
+    public String findByUserAccountId(String name){
+        User user = userRepository.findByUid(name).orElseThrow(() -> new UsernameNotFoundException("user is not exists"));
+        return user.getName();
+    }
 }

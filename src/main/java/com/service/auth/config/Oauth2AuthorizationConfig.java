@@ -1,23 +1,32 @@
 package com.service.auth.config;
 
 
+import com.service.auth.domain.User;
 import com.service.auth.domain.service.CustomUserDetailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.config.annotation.configurers.ClientDetailsServiceConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
-import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
-import org.springframework.security.oauth2.provider.token.TokenStore;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.token.*;
 import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
 import org.springframework.security.oauth2.provider.token.store.JwtTokenStore;
+import org.springframework.security.oauth2.provider.token.store.KeyStoreKeyFactory;
 
 import javax.sql.DataSource;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 @RequiredArgsConstructor
 @EnableAuthorizationServer
@@ -53,34 +62,49 @@ public class Oauth2AuthorizationConfig extends AuthorizationServerConfigurerAdap
                 .autoApprove(true);
     }
 
+    @Bean
+    @Primary
+    public DefaultTokenServices tokenServices() {
+        final DefaultTokenServices defaultTokenServices = new DefaultTokenServices();
+        defaultTokenServices.setTokenStore(tokenStore());
+        defaultTokenServices.setSupportRefreshToken(true);
+        return defaultTokenServices;
+    }
 
-    /**
-     * 토큰 발급 방식을 JWT 토큰 방식으로 변경한다. 이렇게 하면 토큰 저장하는 DB Table은 필요가 없다.
-     *
-     * @param endpoints
-     * @throws Exception
-     */
     @Override
-    public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
-        endpoints.accessTokenConverter(jwtAccessTokenConverter())
+    public void configure(final AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
+        final TokenEnhancerChain tokenEnhancerChain = new TokenEnhancerChain();
+        tokenEnhancerChain.setTokenEnhancers(Arrays.asList(accessTokenConverter()));
+        endpoints.tokenStore(tokenStore())
+                .tokenEnhancer(tokenEnhancerChain)
                 .userDetailsService(userDetailService)
                 .authenticationManager(authenticationManager);
     }
 
-
     @Bean
     public TokenStore tokenStore() {
-        return new JwtTokenStore(jwtAccessTokenConverter());
+        return new JwtTokenStore(accessTokenConverter());
     }
 
-    /**
-     * jwt converter를 등록
-     *
-     * @return */
     @Bean
-    public JwtAccessTokenConverter jwtAccessTokenConverter() {
-        // jwt 키 설정
-        JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
+    public JwtAccessTokenConverter accessTokenConverter() {
+        final JwtAccessTokenConverter converter = new JwtAccessTokenConverter(){
+            @Override
+            public OAuth2AccessToken enhance(OAuth2AccessToken accessToken, OAuth2Authentication authentication) {
+                if(authentication.getOAuth2Request().getGrantType().equalsIgnoreCase("password")) {
+
+                    final Map<String, Object> additionalInfo = new HashMap<String, Object>();
+                    additionalInfo.put("accountId", userDetailService.findByUserAccountId(authentication.getName()));
+                    ((DefaultOAuth2AccessToken) accessToken)
+                            .setAdditionalInformation(additionalInfo);
+                }
+                accessToken = super.enhance(accessToken, authentication);
+                ((DefaultOAuth2AccessToken) accessToken).setAdditionalInformation(new HashMap<>());
+                return accessToken;
+            }
+        };
+
+
         converter.setSigningKey(signKey);
         return converter;
     }
