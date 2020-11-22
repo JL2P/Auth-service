@@ -1,14 +1,11 @@
 package com.service.auth.config;
 
-
-import com.service.auth.domain.User;
 import com.service.auth.domain.service.CustomUserDetailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
@@ -34,7 +31,7 @@ import java.util.Map;
 public class Oauth2AuthorizationConfig extends AuthorizationServerConfigurerAdapter {
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
-//    private final DataSource dataSource;
+
     private final CustomUserDetailService userDetailService;
 
     @Value("${security.oauth2.jwt.signkey}")

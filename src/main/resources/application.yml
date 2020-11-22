@@ -9,7 +9,16 @@ security:
     jwt:
       signkey: planit
 
+
 spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: 268657562740-d1ni58qjpj83lctrttv4ttfsai94he2v.apps.googleusercontent.com
+            client-secret: 6rxSKwt4xlSzL41QctVyV0AS
+            scope: profile,email
   devtools:
     livereload:
       enabled: true
