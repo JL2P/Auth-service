@@ -4,11 +4,14 @@ import com.google.gson.Gson;
 import com.service.auth.domain.service.UserService;
 import com.service.auth.web.dto.GoogleOauthDto;
 import com.service.auth.web.dto.LoginDto;
+import com.service.auth.web.dto.RetKakaoAuth;
 import com.service.auth.web.dto.SignupDto;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.http.*;
 
 import org.springframework.security.core.Authentication;
@@ -17,6 +20,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.ModelAndView;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -34,6 +38,7 @@ public class UserController {
     private final RestTemplate restTemplate;
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
+    private final Environment env;
 
     @Value("${security.oauth2.client.client-id}")
     private String clientId;
@@ -42,10 +47,68 @@ public class UserController {
     @Value("${security.oauth2.jwt.signkey}")
     private String signKey;
 
+
+    @Value("${spring.url.base}")
+    private String baseUrl;
+
+    @Value("${spring.social.kakao.client_id}")
+    private String kakaoClientId;
+
+    @Value("${spring.social.kakao.redirect}")
+    private String kakaoRedirect;
+
+    /**
+     * 카카오 로그인 페이지
+     */
+    @ApiOperation(value = "카카오 로그인 페이지")
+    @GetMapping(value="/social/login/kakao")
+    public ResponseEntity<Object> socialLogin(ModelAndView mav) throws URISyntaxException {
+
+        StringBuilder loginUrl = new StringBuilder()
+                .append(env.getProperty("spring.social.kakao.url.login"))
+                .append("?client_id=").append(kakaoClientId)
+                .append("&response_type=code")
+                .append("&redirect_uri=").append(baseUrl).append(kakaoRedirect);
+
+        URI redirectUri = new URI(loginUrl.toString());
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setLocation(redirectUri);
+        return new ResponseEntity<>(httpHeaders, HttpStatus.SEE_OTHER);
+    }
+
+    /**
+     * 카카오 인증 완료 후 리다이렉트 화면
+     */
+    @ApiOperation(value = "카카오 인증 완료 후 리다이렉트")
+    @GetMapping(value = "/kakao")
+    public RetKakaoAuth redirectKakao(ModelAndView mav, @RequestParam String code) {
+
+        // Set header : Content-type: application/x-www-form-urlencoded
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        // Set parameter
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("grant_type", "authorization_code");
+        params.add("client_id", kakaoClientId);
+        params.add("redirect_uri", baseUrl + kakaoRedirect);
+        params.add("code", code);
+        // Set http entity
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+        ResponseEntity<String> response = restTemplate.postForEntity(env.getProperty("spring.social.kakao.url.token"), request, String.class);
+        if (response.getStatusCode() == HttpStatus.OK) {
+            return gson.fromJson(response.getBody(), RetKakaoAuth.class);
+        }
+        return null;
+
+    }
+
+
+
     //Redirect하기 위한 URL
     //Oauth2인증 Url이 /oauth2/authorization/google 이어서 프론트쪽에서 cors발생 할 것 같기 때문
     @GetMapping("/signin/google")
     public ResponseEntity<Object> redirect() throws URISyntaxException {
+
         URI redirectUri = new URI("http://localhost:9000/oauth2/authorization/google");
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setLocation(redirectUri);
