@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-db-server-service
+  labels:
+    app: auth-db
+    tier: database
+spec:
+  ports:
+    - port: 8000
+      targetPort: 3306
+      name: db-port
+  selector: # mysql Pod Should contain same labels
+    app: auth-db
+    tier: database
+  clusterIP: None # We Use DNS, Thus ClusterIP is not relevant

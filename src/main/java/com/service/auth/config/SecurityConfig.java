@@ -1,7 +1,9 @@
 package com.service.auth.config;
 
 import com.service.auth.domain.service.CustomAuthenticationProvider;
+import com.service.auth.domain.service.CustomOAuth2UserService;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -11,12 +13,11 @@ import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 
-
 @RequiredArgsConstructor
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
-
+    private final CustomOAuth2UserService customOAuth2UserService;
     private final CustomAuthenticationProvider authenticationProvider;
 
     @Override
@@ -31,9 +32,23 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .headers().frameOptions().disable()
                 .and()
                 .authorizeRequests()
-                .antMatchers("/api/auth/signin","/api/auth/signup", "/api-docs/**")
-                .permitAll();
-
+                .antMatchers(
+                        "/api/auth/signin",
+                        "/api/auth/signup",
+                        "/api-docs/**",
+                        "/api/auth/signin/google",
+                        "/api/auth/google",
+                        "/oauth2/authorization/**",
+                        "/api/auth/**",
+                        "/oauth/token")
+                .permitAll()
+//                .anyRequest().access("@authorizationChecker.check(request, authentication)")
+                .and()
+                .oauth2Login()
+                    .userInfoEndpoint()
+                        .userService(customOAuth2UserService)
+                .and()
+                .defaultSuccessUrl("/api/auth/google");
     }
 
     @Override
