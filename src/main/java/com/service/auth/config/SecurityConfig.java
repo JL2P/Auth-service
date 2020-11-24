@@ -38,10 +38,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                         "/api-docs/**",
                         "/api/auth/signin/google",
                         "/api/auth/google",
-                        "oauth2/authorization/**",
+                        "/oauth2/authorization/**",
+                        "/api/auth/**",
                         "/oauth/token")
                 .permitAll()
-                .anyRequest().access("@authorizationChecker.check(request, authentication)")
+//                .anyRequest().access("@authorizationChecker.check(request, authentication)")
                 .and()
                 .oauth2Login()
                     .userInfoEndpoint()
