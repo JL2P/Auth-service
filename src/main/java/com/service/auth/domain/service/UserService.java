@@ -20,4 +20,9 @@ public class UserService {
 
         userRepository.save(user);
     }
+
+    public boolean existCheckUser(String uid){
+        Optional<User> todoOpt = userRepository.findByUid(uid);
+        return todoOpt.isEmpty();
+    }
 }
