@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.service.auth.web.dto.LoginDto;
 import com.service.auth.web.message.ErrorMessage;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +30,7 @@ public class Oauth2Controller {
     @Value("${security.oauth2.client.client-secret}")
     private String clientSecret;
 
+    @ApiOperation(value = "JWT 재발급")
     @GetMapping(value = "/token/refresh")
     public OAuthToken refreshToken(@RequestParam String refreshToken) {
 
@@ -44,7 +46,7 @@ public class Oauth2Controller {
         params.add("refresh_token", refreshToken);
         params.add("grant_type", "refresh_token");
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-        ResponseEntity<String> response = restTemplate.postForEntity("http://localhost:9000/oauth/token", request, String.class);
+        ResponseEntity<String> response = restTemplate.postForEntity("http://myplanit.co.kr/oauth/token", request, String.class);
         if (response.getStatusCode() == HttpStatus.OK) {
             return gson.fromJson(response.getBody(), OAuthToken.class);
         }

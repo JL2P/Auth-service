@@ -1,11 +1,10 @@
 package com.service.auth.web;
 
 import com.google.gson.Gson;
+import com.service.auth.domain.User;
+import com.service.auth.domain.service.KakaoService;
 import com.service.auth.domain.service.UserService;
-import com.service.auth.web.dto.GoogleOauthDto;
-import com.service.auth.web.dto.LoginDto;
-import com.service.auth.web.dto.RetKakaoAuth;
-import com.service.auth.web.dto.SignupDto;
+import com.service.auth.web.dto.*;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
@@ -24,9 +23,11 @@ import org.springframework.web.servlet.ModelAndView;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
+import java.util.Collections;
 
 
 @Api(tags = {"2. User"})
@@ -39,6 +40,7 @@ public class UserController {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final Environment env;
+    private final KakaoService kakaoService;
 
     @Value("${security.oauth2.client.client-id}")
     private String clientId;
@@ -81,7 +83,7 @@ public class UserController {
      */
     @ApiOperation(value = "카카오 인증 완료 후 리다이렉트")
     @GetMapping(value = "/kakao")
-    public RetKakaoAuth redirectKakao(ModelAndView mav, @RequestParam String code) {
+    public ResponseEntity<Object> redirectKakao(ModelAndView mav, @RequestParam String code) throws URISyntaxException {
 
         // Set header : Content-type: application/x-www-form-urlencoded
         HttpHeaders headers = new HttpHeaders();
@@ -95,28 +97,88 @@ public class UserController {
         // Set http entity
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
         ResponseEntity<String> response = restTemplate.postForEntity(env.getProperty("spring.social.kakao.url.token"), request, String.class);
+        RetKakaoAuth retKakaoAuth = null;
         if (response.getStatusCode() == HttpStatus.OK) {
-            return gson.fromJson(response.getBody(), RetKakaoAuth.class);
+            retKakaoAuth=  gson.fromJson(response.getBody(), RetKakaoAuth.class);
         }
-        return null;
 
-    }
-
-
-
-    //Redirect하기 위한 URL
-    //Oauth2인증 Url이 /oauth2/authorization/google 이어서 프론트쪽에서 cors발생 할 것 같기 때문
-    @GetMapping("/signin/google")
-    public ResponseEntity<Object> redirect() throws URISyntaxException {
-
-        URI redirectUri = new URI("http://localhost:9000/oauth2/authorization/google");
+//        System.out.println("http://localhost:3000/signin/"+retKakaoAuth.getAccess_token());
+//        URI redirectUri = new URI("http://localhost:3000/signin/"+retKakaoAuth.getAccess_token());
+        URI redirectUri = new URI("http://myplanit.co.kr/signin/"+retKakaoAuth.getAccess_token());
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setLocation(redirectUri);
         return new ResponseEntity<>(httpHeaders, HttpStatus.SEE_OTHER);
     }
 
+    @ApiOperation(value = "카카오 회원 가입")
+    @PostMapping("/signin/kakao/{token}")
+    public OAuthTokenKakao kakaoLoign(@PathVariable String token){
+        KakaoProfile kakaoProfile = kakaoService.getKakaoProfile(token);
+        String uid = "";
+        String name = "";
+
+        if(kakaoProfile.getEmail() != null){
+            uid = kakaoProfile.getEmail();
+            int idx = uid.indexOf("@");
+            name = uid.substring(0, idx);
+        }else{
+            uid =  kakaoProfile.getNickname()+"@kakao.com";
+            name = kakaoProfile.getNickname();
+        }
+
+        //유저가 존재하지 않을 경우
+        if(userService.existCheckUser(uid)){
+            User newUser = User.builder()
+                    .uid(uid)
+                    .password(passwordEncoder.encode(signKey))
+                    .name(name)
+                    .roles(Collections.singletonList("ROLE_USER"))
+                    .build();
+
+            userService.addUser(newUser);
+        }
+
+        String credentials = clientId+":"+clientSecret;
+        String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        headers.add("Authorization", "Basic " + encodedCredentials);
+
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("username", uid);
+        params.add("password", signKey);
+        params.add("grant_type", "password");
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+        ResponseEntity<String> response = restTemplate.postForEntity("http://localhost:9000/oauth/token", request, String.class);
+        if (response.getStatusCode() == HttpStatus.OK) {
+            OAuthTokenKakao oAuthTokenKakao =  gson.fromJson(response.getBody(), OAuthTokenKakao.class);
+            oAuthTokenKakao.setAccountId(name);
+            oAuthTokenKakao.setEmail(uid);
+            oAuthTokenKakao.setImgUrl(kakaoProfile.getImgUrl());
+            return oAuthTokenKakao;
+        }
+        return null;
+    }
+
+
+
+
+    //Redirect하기 위한 URL
+    //Oauth2인증 Url이 /oauth2/authorization/google 이어서 프론트쪽에서 cors발생 할 것 같기 때문
+    @ApiOperation(value = "구글 로그인")
+    @GetMapping("/signin/google")
+    public ResponseEntity<Object> redirect() throws URISyntaxException {
+
+        URI redirectUri = new URI("http://myplanit.co.kr/oauth2/authorization/google");
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setLocation(redirectUri);
+        return new ResponseEntity<>(httpHeaders, HttpStatus.SEE_OTHER);
+    }
+
+    @ApiOperation(value = "구글 로그인 리다이렉트 URL")
     @GetMapping("/google")
-    public OAuthToken googleLogin( Authentication authentication){
+    public void googleLogin( Authentication authentication, HttpServletResponse re_response) throws IOException {
         Gson gson = new Gson();
         String json = gson.toJson(authentication.getPrincipal());
         GoogleOauthDto googleOauthDto = gson.fromJson(json, GoogleOauthDto.class);
@@ -133,14 +195,16 @@ public class UserController {
         params.add("password", signKey);
         params.add("grant_type", "password");
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-        ResponseEntity<String> response = restTemplate.postForEntity("http://localhost:9000/oauth/token", request, String.class);
+        ResponseEntity<String> response = restTemplate.postForEntity("http://myplanit.co.kr/oauth/token", request, String.class);
 
-        if (response.getStatusCode() == HttpStatus.OK) {
-            return gson.fromJson(response.getBody(), OAuthToken.class);
-        }
-        return null;
+//        if (response.getStatusCode() == HttpStatus.OK) {
+//            return gson.fromJson(response.getBody(), OAuthToken.class);
+//        }
+//        return null;
+          re_response.sendRedirect("http://myplanit.co.kr/signin/"+googleOauthDto.getAttributes().getEmail());
     }
 
+    @ApiOperation(value = "서비스 자체 회원 가입")
     @PostMapping("/signup")
     public OAuthToken addUser(@RequestBody SignupDto signupDto){
         userService.addUser(signupDto.toEntity(passwordEncoder.encode(signupDto.getPassword())));
@@ -164,6 +228,7 @@ public class UserController {
         return null;
     }
 
+    @ApiOperation(value = "서비스 자체 로그인")
     @PostMapping("/signin")
     public OAuthToken callbackSocial(@RequestBody LoginDto loginDto) {
 
