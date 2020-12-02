@@ -48,7 +48,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                     .userInfoEndpoint()
                         .userService(customOAuth2UserService)
                 .and()
-                .defaultSuccessUrl("/api/auth/google");
+                .defaultSuccessUrl("http://localhost:4000/api/auth/google");
     }
 
     @Override

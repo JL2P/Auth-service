@@ -195,7 +195,7 @@ public class UserController {
         params.add("password", signKey);
         params.add("grant_type", "password");
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-        ResponseEntity<String> response = restTemplate.postForEntity("http://myplanit.co.kr/oauth/token", request, String.class);
+        ResponseEntity<String> response = restTemplate.postForEntity("http://localhost:9000/oauth/token", request, String.class);
 
 //        if (response.getStatusCode() == HttpStatus.OK) {
 //            return gson.fromJson(response.getBody(), OAuthToken.class);
@@ -250,4 +250,12 @@ public class UserController {
         }
         return null;
     }
+
+    @ApiOperation(value = "서비스 탈퇴")
+    @DeleteMapping("/{accountId}")
+    public String signout(@PathVariable String accountId){
+        userService.deleteUser(accountId);
+        return "sucess";
+    }
+
 }
