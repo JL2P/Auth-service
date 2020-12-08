@@ -3,7 +3,7 @@ version: "3"
 services:
   docker-mariaDB:
     container_name: docker-mariaDB
-    image: shoon2430/mariadb:v1
+    image: mariadb
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: planit_auth
@@ -14,9 +14,9 @@ services:
 
   docker-spring:
     container_name: docker-spring
-    image: shoon2430/auth-service:t1
+    image: dlaudghtn/auth-service:v1
     restart: on-failure
     depends_on:
       - docker-mariaDB
     ports:
-      - 9010:9000
+      - 9000:9000

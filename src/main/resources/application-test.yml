@@ -1,0 +1,15 @@
+# docker-compose로 테스트시 사용되는 yml파일
+spring:
+  devtools:
+    livereload:
+      enabled: true
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://docker-mariaDB/planit_auth?useUnicode=true&charaterEncoding=utf-8&useSSL=false&serverTimezone=UTC
+    hikari:
+      username: planit
+      password: planit1234
+  jpa:
+    database-platform: org.hibernate.dialect.MariaDB53Dialect
+    hibernate:
+      ddl-auto: create
