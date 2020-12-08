@@ -17,6 +17,6 @@ services:
     image: dlaudghtn/auth-service:v1
     restart: on-failure
     depends_on:
-      - docker-mariaDB
+      - docker-authDB
     ports:
       - 9000:9000
