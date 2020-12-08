@@ -13,7 +13,7 @@ services:
       - 8000:3306
 
   docker-spring:
-    container_name: docker-spring
+    container_name: docker-auth
     image: dlaudghtn/auth-service:v1
     restart: on-failure
     depends_on:
