@@ -2,7 +2,7 @@ version: "3"
 
 services:
   docker-mariaDB:
-    container_name: docker-mariaDB
+    container_name: docker-authDB
     image: mariadb
     environment:
       MYSQL_ROOT_PASSWORD: root
